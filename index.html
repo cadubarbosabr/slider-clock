@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Neumorphic Clock</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&display=swap');
+
+        :root {
+            --bg-color: #e6eef9;
+            --shadow-light: #ffffff;
+            --shadow-dark: #b8c6d9;
+            --text-dim: #94a3b8;
+            --active-text: #ffffff;
+            --indicator-bg: linear-gradient(145deg, #3d434d, #2a2e35);
+            --bar-bg: #e6eef9;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            cursor: default;
+        }
+
+        body {
+            background: radial-gradient(circle at 20% 20%, #f0f4f8 0%, var(--bg-color) 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Montserrat', sans-serif;
+            overflow: hidden;
+            color: #475569;
+        }
+
+        /* Ambient background glow */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 150vw;
+            height: 150vh;
+            background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 70%);
+            top: -25vh;
+            left: -25vw;
+            pointer-events: none;
+        }
+
+        .clock-container {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            z-index: 1;
+        }
+
+        .column-wrapper {
+            position: relative;
+            width: 58px;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Fixed center indicator */
+        .indicator-circle {
+            width: 62px;
+            height: 62px;
+            background: var(--indicator-bg);
+            border-radius: 50%;
+            position: absolute;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--active-text);
+            font-size: 1.6rem;
+            font-weight: 800;
+            box-shadow: 
+                8px 8px 16px rgba(0,0,0,0.25),
+                -4px -4px 10px rgba(255,255,255,0.15),
+                inset 2px 2px 4px rgba(255,255,255,0.1);
+            pointer-events: none;
+        }
+
+        /* Moving mechanical bar */
+        .moving-bar {
+            width: 48px;
+            background: var(--bar-bg);
+            border-radius: 24px;
+            box-shadow: 
+                12px 12px 24px var(--shadow-dark),
+                -8px -8px 20px var(--shadow-light),
+                inset 1px 1px 2px rgba(255,255,255,0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px 0;
+            position: absolute;
+            transition: transform 1.1s cubic-bezier(0.3, 1.6, 0.4, 1);
+            z-index: 1;
+        }
+
+        .number-label {
+            height: 52px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-dim);
+            transition: all 0.4s ease;
+        }
+
+        .separator {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--shadow-dark);
+            margin-bottom: 8px;
+            filter: drop-shadow(2px 2px 2px var(--shadow-light));
+        }
+
+        /* Interactive pulse for seconds */
+        #bar-4, #bar-5 {
+            opacity: 0.95;
+        }
+
+        @media (max-width: 700px) {
+            .clock-container { transform: scale(0.65); gap: 12px; }
+            .column-wrapper { width: 50px; }
+        }
+
+        /* Top & Bottom fade out for the bars */
+        .column-wrapper::before,
+        .column-wrapper::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 150px;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .column-wrapper::before {
+            top: 0;
+            background: linear-gradient(to bottom, var(--bg-color) 20%, transparent 100%);
+        }
+
+        .column-wrapper::after {
+            bottom: 0;
+            background: linear-gradient(to top, var(--bg-color) 20%, transparent 100%);
+        }
+    </style>
+</head>
+<body>
+
+<div class="clock-container">
+    <div class="column-wrapper">
+        <div class="indicator-circle" id="ind-0">0</div>
+        <div class="moving-bar" id="bar-0"></div>
+    </div>
+    <div class="column-wrapper">
+        <div class="indicator-circle" id="ind-1">0</div>
+        <div class="moving-bar" id="bar-1"></div>
+    </div>
+
+    <div class="separator">:</div>
+
+    <div class="column-wrapper">
+        <div class="indicator-circle" id="ind-2">0</div>
+        <div class="moving-bar" id="bar-2"></div>
+    </div>
+    <div class="column-wrapper">
+        <div class="indicator-circle" id="ind-3">0</div>
+        <div class="moving-bar" id="bar-3"></div>
+    </div>
+
+    <div class="separator">:</div>
+
+    <div class="column-wrapper">
+        <div class="indicator-circle" id="ind-4">0</div>
+        <div class="moving-bar" id="bar-4"></div>
+    </div>
+    <div class="column-wrapper">
+        <div class="indicator-circle" id="ind-5">0</div>
+        <div class="moving-bar" id="bar-5"></div>
+    </div>
+</div>
+
+<script>
+    const limits = [2, 9, 5, 9, 5, 9];
+    const LABEL_HEIGHT = 52;
+
+    function init() {
+        for (let i = 0; i < 6; i++) {
+            const bar = document.getElementById(`bar-${i}`);
+            for (let n = 0; n <= limits[i]; n++) {
+                const div = document.createElement('div');
+                div.className = 'number-label';
+                div.textContent = n;
+                bar.appendChild(div);
+            }
+        }
+    }
+
+    function updateClock() {
+        const now = new Date();
+        const timeArr = [
+            Math.floor(now.getHours() / 10),
+            now.getHours() % 10,
+            Math.floor(now.getMinutes() / 10),
+            now.getMinutes() % 10,
+            Math.floor(now.getSeconds() / 10),
+            now.getSeconds() % 10
+        ];
+
+        timeArr.forEach((val, i) => {
+            const bar = document.getElementById(`bar-${i}`);
+            const indicator = document.getElementById(`ind-${i}`);
+
+            const totalItems = limits[i] + 1;
+            const midPointOfBar = ((totalItems * LABEL_HEIGHT) / 2);
+            // 15 is the top padding of the bar
+            const targetPos = (val * LABEL_HEIGHT) + 15 + (LABEL_HEIGHT / 2);
+            
+            const shift = midPointOfBar - targetPos;
+            
+            bar.style.transform = `translateY(${shift}px)`;
+            
+            // Text update
+            indicator.textContent = val;
+
+            // Highlight nearby numbers for a lens effect
+            const labels = bar.querySelectorAll('.number-label');
+            labels.forEach((l, idx) => {
+                const dist = Math.abs(idx - val);
+                if (dist === 0) {
+                    l.style.opacity = "0";
+                    l.style.transform = "scale(1.2)";
+                } else if (dist === 1) {
+                    l.style.opacity = "0.7";
+                    l.style.transform = "scale(1)";
+                    l.style.color = "#64748b";
+                } else {
+                    l.style.opacity = "0.3";
+                    l.style.transform = "scale(0.9)";
+                    l.style.color = "var(--text-dim)";
+                }
+            });
+        });
+    }
+
+    init();
+    setInterval(updateClock, 1000);
+    updateClock();
+</script>
+
+</body>
+</html>
